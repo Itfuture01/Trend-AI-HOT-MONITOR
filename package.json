@@ -1,0 +1,34 @@
+{
+  "name": "trend-ai-hot-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI 热点监控：关键词监控 + 热点聚合 + 多渠道通知",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
+    "dev:web": "vite",
+    "build": "vite build",
+    "smoke": "node scripts/smoke.mjs",
+    "cli": "node cli.mjs"
+  },
+  "engines": {
+    "node": ">=23"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "express": "^5.2.1",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^9.0.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "undici": "^8.10.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.2.2"
+  }
+}

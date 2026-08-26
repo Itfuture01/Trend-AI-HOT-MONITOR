@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node --disable-warning=ExperimentalWarning -e \"import\\('undici'\\).then\\(m=>console.log\\('EnvHttpProxyAgent' in m ? 'EnvHttpProxyAgent OK' : 'MISSING', '| undici keys:', Object.keys\\(m\\).filter\\(k=>/Agent|fetch/.test\\(k\\)\\).join\\(','\\)\\)\\)\")",
+      "Bash(node --disable-warning=ExperimentalWarning -e ' *)"
+    ]
+  }
+}
