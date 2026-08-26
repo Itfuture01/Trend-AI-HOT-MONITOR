@@ -87,6 +87,25 @@ const SOURCE_SEED = [
   for (const [name, label, note] of SOURCE_SEED) ins.run(name, label, note);
 }
 
+// ---- 迁移：hotspots 补充 AI 审核字段（level 分级 / model 模型 / views 查看次数 / genuine 真实性）----
+{
+  const cols = db.prepare('PRAGMA table_info(hotspots)').all().map((c) => c.name);
+  if (!cols.includes('level')) db.exec("ALTER TABLE hotspots ADD COLUMN level TEXT DEFAULT 'medium'");
+  if (!cols.includes('model')) db.exec("ALTER TABLE hotspots ADD COLUMN model TEXT DEFAULT ''");
+  if (!cols.includes('views')) db.exec('ALTER TABLE hotspots ADD COLUMN views INTEGER DEFAULT 0');
+  if (!cols.includes('genuine')) db.exec('ALTER TABLE hotspots ADD COLUMN genuine INTEGER DEFAULT 1');
+  // 旧数据 score 为 0~1，统一迁移到 0~100
+  db.exec('UPDATE hotspots SET score = ROUND(score * 100) WHERE score > 0 AND score <= 1');
+}
+
+// 旧数据（无 model 记录）按 score 回填重要性分级（幂等，新 AI 结果已带 level/model 不受影响）
+db.exec(`UPDATE hotspots SET level = CASE
+  WHEN score >= 80 THEN 'urgent'
+  WHEN score >= 60 THEN 'high'
+  WHEN score >= 40 THEN 'medium'
+  ELSE 'low' END
+  WHERE model = ''`);
+
 // 去重键：标题 + URL 规范化后 sha1
 export function hashItem(title, url) {
   const norm = `${(title || '').trim().toLowerCase()}||${(url || '').trim().toLowerCase()}`;

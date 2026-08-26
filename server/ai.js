@@ -13,7 +13,7 @@ function clamp(n, lo, hi) {
 }
 
 // 批量判定：items = [{title,url,source,snippet}]，context.topic = 关键词/范围
-// 返回与 items 等长的 [{relevant, genuine, summary, reason}]
+// 返回与 items 等长的 [{relevant(0~100), genuine, level, summary, reason}]
 export async function analyzeItems(items, { topic } = {}) {
   if (!items.length) return [];
   if (!aiEnabled()) return fallback(items, topic, 'AI 未配置，降级为关键词匹配');
@@ -32,13 +32,24 @@ export async function analyzeItems(items, { topic } = {}) {
   return results;
 }
 
+// 相关性评分 → 重要性分级（AI 未返回 level 时的兜底）
+export function levelFromScore(score) {
+  const s = Number(score) || 0;
+  if (s >= 80) return 'urgent';
+  if (s >= 60) return 'high';
+  if (s >= 40) return 'medium';
+  return 'low';
+}
+
 function fallback(items, topic, reason) {
   const kw = (topic || '').toLowerCase();
   return items.map((it) => {
     const hit = kw && (it.title || '').toLowerCase().includes(kw);
+    const relevant = hit ? 90 : 30;
     return {
-      relevant: hit ? 1 : 0.3,
+      relevant,
       genuine: true,
+      level: levelFromScore(relevant),
       summary: '',
       reason,
     };
@@ -50,13 +61,15 @@ async function analyzeBatch(items, topic) {
     .map((it, idx) => `${idx}. 标题: ${it.title}\n   来源: ${it.source}\n   摘要: ${(it.snippet || '').slice(0, 150)}`)
     .join('\n');
 
-  const prompt = `你是热点监控的智能过滤助手。用户关注的主题/关键词是：「${topic || '未指定'}」。
-请逐条判断下面内容，并只返回一个 JSON 对象（不要任何解释文字），形如：
-{"results":[{"index":0,"relevant":0.0,"genuine":true,"summary":"一句话中文摘要","reason":"简短理由"}]}
+  const prompt = `你是热点监控的智能审核助手。用户关注的主题/关键词是：「${topic || '未指定'}」。
+请对下面每条内容依次完成审核，并只返回一个 JSON 对象（不要任何解释文字），形如：
+{"results":[{"index":0,"relevant":85,"genuine":true,"level":"high","summary":"一句话中文摘要","reason":"简短理由"}]}
 字段含义：
-- relevant: 0~1，与该主题的相关度
-- genuine: true/false，是否真实有效（排除标题党、营销号、同名无关、AI造谣、广告、垃圾）
-- summary: 一句话中文摘要
+- relevant: 0~100，与该主题的相关度评分（越高越相关）
+- genuine: true/false，真实性判断（排除标题党、营销号、同名无关、AI造谣、广告、垃圾）
+- level: 重要性分级，urgent(紧急)/high(高)/medium(中)/low(低)
+- summary: 一句话中文摘要，方便快速阅读
+- reason: 简短理由（判定依据）
 
 内容列表：
 ${list}`;
@@ -88,9 +101,14 @@ ${list}`;
 
   return items.map((it, idx) => {
     const r = arr.find((x) => Number(x.index) === idx) || {};
+    const relevant = clamp(r.relevant, 0, 100);
+    const level = ['urgent', 'high', 'medium', 'low'].includes(r.level)
+      ? r.level
+      : levelFromScore(relevant);
     return {
-      relevant: clamp(r.relevant, 0, 1),
+      relevant,
       genuine: r.genuine !== false,
+      level,
       summary: String(r.summary || ''),
       reason: String(r.reason || ''),
     };

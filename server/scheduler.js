@@ -2,14 +2,14 @@ import cron from 'node-cron';
 import { config } from './config.js';
 import { db, dedupeItem, hashItem } from './db.js';
 import { searchAll, hotAll } from './collectors/index.js';
-import { analyzeItems } from './ai.js';
+import { analyzeItems, aiEnabled } from './ai.js';
 import { notifyAlert, ensureVapidKeys } from './notify.js';
 import { broadcast } from './events.js';
 
 const running = { keyword: false, hotspot: false };
 const lastRun = { keyword: null, hotspot: null, manual: null };
 
-const HOTSPOT_THRESHOLD = 0.4; // 热点聚合更宽松
+const HOTSPOT_THRESHOLD = 40; // 热点聚合更宽松（相关性 0~100）
 const NATIVE_HOT_TOPIC = 'AI、人工智能、大模型、科技、编程'; // 原生热搜榜的过滤主题
 
 export function getStatus() {
@@ -51,7 +51,7 @@ async function processKeyword(kw) {
         url: it.url,
         source: it.source,
         reason: v.reason,
-        ai_verdict: `${v.relevant.toFixed(2)} · ${v.summary}`,
+        ai_verdict: `[${v.level || '—'}] ${Math.round(v.relevant)}% · ${v.summary}`,
       });
       alerted++;
     }
@@ -103,8 +103,8 @@ async function storeHotspots(items, range, topic) {
     const v = verdicts[i] || {};
     if (v.relevant >= HOTSPOT_THRESHOLD && v.genuine) {
       db.prepare(
-        'INSERT INTO hotspots (title, summary, source, url, score, range) VALUES (?,?,?,?,?,?)',
-      ).run(it.title, v.summary, it.source, it.url, v.relevant, range);
+        'INSERT INTO hotspots (title, summary, source, url, score, range, level, model, genuine) VALUES (?,?,?,?,?,?,?,?,?)',
+      ).run(it.title, v.summary, it.source, it.url, v.relevant, range, v.level, aiEnabled() ? config.openrouter.model : '', v.genuine ? 1 : 0);
       stored++;
     }
   }

@@ -92,3 +92,43 @@ export const IconWarn = ({ className = 'w-5 h-5' }) => (
     <path d="M12 3 2 20h20L12 3zM12 10v4M12 17.5v.5" />
   </Svg>
 );
+
+export const IconEye = ({ className = 'w-5 h-5' }) => (
+  <Svg className={className}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+);
+
+export const IconCpu = ({ className = 'w-5 h-5' }) => (
+  <Svg className={className}>
+    <rect x="6" y="6" width="12" height="12" rx="2" />
+    <rect x="9" y="9" width="6" height="6" />
+    <path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4" />
+  </Svg>
+);
+
+export const IconFlame = ({ className = 'w-5 h-5' }) => (
+  <Svg className={className}>
+    <path d="M12 2c1 3-2 4-2 7a2 2 0 0 0 4 0c1 2 2 3.5 2 5.5a4 4 0 0 1-8 0c0-2 .5-3.5 1.5-5C8 12 9 13 10 12c1-1 2-2.5 2-4z" />
+  </Svg>
+);
+
+export const IconTrendingUp = ({ className = 'w-5 h-5' }) => (
+  <Svg className={className}>
+    <path d="M3 17l6-6 4 4 7-7" />
+    <path d="M14 8h6v6" />
+  </Svg>
+);
+
+export const IconSignal = ({ className = 'w-5 h-5' }) => (
+  <Svg className={className}>
+    <path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 20V4" />
+  </Svg>
+);
+
+export const IconHash = ({ className = 'w-5 h-5' }) => (
+  <Svg className={className}>
+    <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />
+  </Svg>
+);

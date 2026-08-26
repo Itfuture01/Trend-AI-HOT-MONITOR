@@ -1,5 +1,6 @@
 import { IconRadar, IconScan, IconGear } from './icons.jsx';
 import { timeAgo } from '../lib.js';
+import NotificationCenter from './NotificationCenter.jsx';
 
 function Dot({ on, color = '#4ade80' }) {
   return (
@@ -19,7 +20,7 @@ function Chip({ label, on }) {
   );
 }
 
-export default function StatusBar({ stats, connected, scanning, onScan, onOpenSettings }) {
+export default function StatusBar({ stats, connected, scanning, onScan, onOpenSettings, alerts }) {
   const status = stats?.status || {};
   const last = status.lastRun?.manual || status.lastRun?.hotspot || status.lastRun?.keyword;
 
@@ -60,6 +61,7 @@ export default function StatusBar({ stats, connected, scanning, onScan, onOpenSe
             <IconScan className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
             {scanning ? '扫描中' : '立即扫描'}
           </button>
+          <NotificationCenter alerts={alerts || []} />
           <button
             onClick={onOpenSettings}
             aria-label="设置"

@@ -14,21 +14,32 @@ import { broadcast } from '../events.js';
 const router = Router();
 
 // ---------- 热点 ----------
+// 按重要性分级排序：urgent > high > medium > low，同级再按相关性、时间
+const LEVEL_ORDER = `CASE level WHEN 'urgent' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 ELSE 1 END`;
+
 router.get('/hotspots', (req, res) => {
   const range = req.query.range || '';
   const limit = Math.min(Number(req.query.limit) || 50, 200);
   let rows;
   if (range) {
     rows = db
-      .prepare('SELECT * FROM hotspots WHERE range = ? ORDER BY score DESC, last_seen DESC LIMIT ?')
+      .prepare(`SELECT * FROM hotspots WHERE range = ? ORDER BY ${LEVEL_ORDER} DESC, score DESC, last_seen DESC LIMIT ?`)
       .all(range, limit);
   } else {
     rows = db
-      .prepare('SELECT * FROM hotspots ORDER BY score DESC, last_seen DESC LIMIT ?')
+      .prepare(`SELECT * FROM hotspots ORDER BY ${LEVEL_ORDER} DESC, score DESC, last_seen DESC LIMIT ?`)
       .all(limit);
   }
   const ranges = db.prepare('SELECT DISTINCT range FROM hotspots').all().map((r) => r.range);
   res.json({ hotspots: rows, ranges });
+});
+
+// 查看次数 +1（点击跳转源页面时调用）
+router.post('/hotspots/:id/view', (req, res) => {
+  const id = Number(req.params.id);
+  db.prepare('UPDATE hotspots SET views = views + 1 WHERE id = ?').run(id);
+  const row = db.prepare('SELECT views FROM hotspots WHERE id = ?').get(id);
+  res.json({ ok: true, views: row?.views ?? 0 });
 });
 
 // ---------- 关键词 ----------
@@ -147,6 +158,9 @@ router.post('/test-push', async (req, res) => {
 router.get('/stats', (req, res) => {
   const keywords = db.prepare('SELECT count(*) c FROM keywords').get().c;
   const hotspots = db.prepare('SELECT count(*) c FROM hotspots').get().c;
+  const todayNew = db.prepare("SELECT count(*) c FROM hotspots WHERE date(first_seen) = date('now','localtime')").get().c;
+  const urgent = db.prepare("SELECT count(*) c FROM hotspots WHERE level = 'urgent'").get().c;
+  const high = db.prepare("SELECT count(*) c FROM hotspots WHERE level = 'high'").get().c;
   const alerts = db.prepare('SELECT count(*) c FROM alerts').get().c;
   const subscriptions = db.prepare('SELECT count(*) c FROM push_subscriptions').get().c;
   const sourcesTotal = db.prepare('SELECT count(*) c FROM sources').get().c;
@@ -154,6 +168,9 @@ router.get('/stats', (req, res) => {
   res.json({
     keywords,
     hotspots,
+    todayNew,
+    urgent,
+    high,
     alerts,
     subscriptions,
     sourcesTotal,

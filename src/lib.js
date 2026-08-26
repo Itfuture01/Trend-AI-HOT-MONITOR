@@ -14,15 +14,27 @@ export function timeAgo(input) {
 }
 
 export function scorePct(score) {
-  return Math.round((Number(score) || 0) * 100);
+  return Math.round(Number(score) || 0); // score 已是 0~100
 }
 
 // 分数 → 信号色（绿=强 / 琥珀=中 / 灰=弱）
 export function scoreColor(score) {
   const s = Number(score) || 0;
-  if (s >= 0.6) return '#4ade80';
-  if (s >= 0.4) return '#f59e0b';
+  if (s >= 70) return '#4ade80';
+  if (s >= 40) return '#f59e0b';
   return '#94a3b8';
+}
+
+// 重要性分级元数据（紧急程度用英文标签）
+export const LEVELS = {
+  urgent: { label: 'URGENT', color: '#ef4444', rank: 4 },
+  high: { label: 'HIGH', color: '#f59e0b', rank: 3 },
+  medium: { label: 'MEDIUM', color: '#4ade80', rank: 2 },
+  low: { label: 'LOW', color: '#64748b', rank: 1 },
+};
+
+export function levelMeta(level) {
+  return LEVELS[level] || LEVELS.medium;
 }
 
 // 稳定的字符串哈希（用于雷达光点定位）

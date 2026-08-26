@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from './api.js';
 import StatusBar from './components/StatusBar.jsx';
-import Radar from './components/Radar.jsx';
+import StatCards from './components/StatCards.jsx';
 import KeywordPanel from './components/KeywordPanel.jsx';
 import HotspotList from './components/HotspotList.jsx';
-import AlertStream from './components/AlertStream.jsx';
 import Settings from './components/Settings.jsx';
 
 export default function App() {
@@ -81,25 +80,23 @@ export default function App() {
         scanning={scanning}
         onScan={handleScan}
         onOpenSettings={() => setSettingsOpen(true)}
+        alerts={alerts}
       />
 
       <main className="mx-auto mt-6 grid max-w-[1500px] grid-cols-1 items-start gap-5 px-4 lg:grid-cols-12 lg:px-6">
+        {/* 统计指标 */}
+        <div className="lg:col-span-12">
+          <StatCards stats={stats} />
+        </div>
+
         {/* 左：关键词监控 */}
-        <div className="order-2 space-y-5 lg:order-none lg:col-span-3">
+        <div className="order-2 lg:order-none lg:col-span-3">
           <KeywordPanel keywords={keywords} onChanged={load} />
         </div>
 
-        {/* 中：雷达 + 热点 */}
-        <div className="order-1 space-y-5 lg:order-none lg:col-span-6">
-          <div className="glass rounded-2xl p-4">
-            <Radar hotspots={hotspots} range={range} />
-          </div>
+        {/* 主体：热点列表 */}
+        <div className="order-1 lg:order-none lg:col-span-9">
           <HotspotList hotspots={hotspots} ranges={ranges} range={range} onRange={setRange} />
-        </div>
-
-        {/* 右：告警流 */}
-        <div className="order-3 lg:order-none lg:col-span-3">
-          <AlertStream alerts={alerts} />
         </div>
       </main>
 

@@ -9,7 +9,7 @@ export default function Radar({ hotspots = [], range = '' }) {
       const radius = 28 + (n % 62); // 28..89（viewBox 200，中心 100）
       const x = 100 + Math.cos(angle) * radius;
       const y = 100 + Math.sin(angle) * radius;
-      const r = 2.2 + Math.min(3.6, (Number(h.score) || 0) * 4);
+      const r = 2.2 + Math.min(3.6, ((Number(h.score) || 0) / 100) * 4);
       return { ...h, x, y, r };
     });
   }, [hotspots]);
@@ -52,7 +52,7 @@ export default function Radar({ hotspots = [], range = '' }) {
               className="blip-dot"
               style={{ animation: `blip ${2 + (i % 4) * 0.6}s ease-in-out infinite`, animationDelay: `${(i % 5) * 0.3}s` }}
             >
-              <title>{`${b.title} · ${Math.round((b.score || 0) * 100)}%`}</title>
+              <title>{`${b.title} · ${Math.round(b.score || 0)}%`}</title>
             </circle>
           </g>
         ))}
