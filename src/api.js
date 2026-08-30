@@ -13,8 +13,8 @@ async function req(method, path, body) {
 
 export const api = {
   stats: () => req('GET', '/stats'),
-  hotspots: (range = '', page = 1, limit = 20) =>
-    req('GET', `/hotspots?range=${encodeURIComponent(range)}&page=${page}&limit=${limit}`),
+  hotspots: (range = '', page = 1, limit = 20, q = '') =>
+    req('GET', `/hotspots?range=${encodeURIComponent(range)}&page=${page}&limit=${limit}&q=${encodeURIComponent(q)}`),
   keywords: () => req('GET', '/keywords'),
   addKeyword: (keyword, scope = '') => req('POST', '/keywords', { keyword, scope }),
   updateKeyword: (id, patch) => req('PATCH', `/keywords/${id}`, patch),

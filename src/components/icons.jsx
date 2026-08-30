@@ -137,3 +137,10 @@ export const IconHash = ({ className = 'w-5 h-5' }) => (
     <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />
   </Svg>
 );
+
+export const IconSearch = ({ className = 'w-5 h-5' }) => (
+  <Svg className={className}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.35-4.35" />
+  </Svg>
+);

@@ -14,6 +14,7 @@ export default function App() {
   const [ranges, setRanges] = useState([]);
   const [range, setRange] = useState('');
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
   const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1 });
   const [keywords, setKeywords] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -23,11 +24,11 @@ export default function App() {
   const scanTimer = useRef(null);
 
   const load = useCallback(
-    async (rng = range, pg = page) => {
+    async (rng = range, pg = page, q = query) => {
       try {
         const [s, h, k, a] = await Promise.all([
           api.stats(),
-          api.hotspots(rng, pg),
+          api.hotspots(rng, pg, 20, q),
           api.keywords(),
           api.alerts(),
         ]);
@@ -41,7 +42,7 @@ export default function App() {
         console.error('[load]', e);
       }
     },
-    [range, page],
+    [range, page, query],
   );
 
   useEffect(() => {
@@ -63,6 +64,11 @@ export default function App() {
 
   const handleRange = (r) => {
     setRange(r);
+    setPage(1);
+  };
+
+  const handleQuery = (q) => {
+    setQuery(q);
     setPage(1);
   };
 
@@ -123,6 +129,8 @@ export default function App() {
             ranges={ranges}
             range={range}
             onRange={handleRange}
+            query={query}
+            onQuery={handleQuery}
             page={page}
             total={pageInfo.total}
             totalPages={pageInfo.totalPages}

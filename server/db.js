@@ -106,6 +106,25 @@ db.exec(`UPDATE hotspots SET level = CASE
   ELSE 'low' END
   WHERE model = ''`);
 
+// 热点去重：按「标题 + 来源 + 范围」判断是否已存在。
+// 搜狗等源的 URL 每次抓取都会变（带随机 UUID），不能只按 URL 去重。
+// 已存在则刷新 last_seen 并返回 id，不存在返回 null。
+export function touchHotspot(title, source, range) {
+  const t = (title || '').trim().toLowerCase();
+  const s = source || '';
+  const r = range || '';
+  const row = db
+    .prepare(
+      "SELECT id FROM hotspots WHERE COALESCE(lower(trim(title)),'') = ? AND COALESCE(source,'') = ? AND COALESCE(range,'') = ? LIMIT 1",
+    )
+    .get(t, s, r);
+  if (row) {
+    db.prepare("UPDATE hotspots SET last_seen = datetime('now','localtime') WHERE id = ?").run(row.id);
+    return row.id;
+  }
+  return null;
+}
+
 // 去重键：标题 + URL 规范化后 sha1
 export function hashItem(title, url) {
   const norm = `${(title || '').trim().toLowerCase()}||${(url || '').trim().toLowerCase()}`;

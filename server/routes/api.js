@@ -17,20 +17,69 @@ const router = Router();
 // 按重要性分级排序：urgent > high > medium > low，同级再按相关性、时间
 const LEVEL_ORDER = `CASE level WHEN 'urgent' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 ELSE 1 END`;
 
+// 模糊检索相似度：对每个词按命中位置打分（标题精确 > 标题前缀 > 标题包含 > 摘要 > 来源）
+function rowSimilarity(item, terms) {
+  const title = (item.title || '').toLowerCase();
+  const summary = (item.summary || '').toLowerCase();
+  const source = (item.source || '').toLowerCase();
+  let sim = 0;
+  for (const raw of terms) {
+    const t = (raw || '').toLowerCase();
+    if (!t) continue;
+    if (title === t) sim += 100;
+    else if (title.startsWith(t)) sim += 80;
+    else if (title.includes(t)) sim += 60;
+    else if (summary.includes(t)) sim += 30;
+    else if (source.includes(t)) sim += 10;
+  }
+  return sim;
+}
+
 router.get('/hotspots', (req, res) => {
   const range = req.query.range || '';
+  const q = (req.query.q || '').trim();
   const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
   const page = Math.max(Number(req.query.page) || 1, 1);
   const offset = (page - 1) * limit;
-  const where = range ? 'WHERE range = ?' : '';
-  const params = range ? [range] : [];
 
-  const total = db.prepare(`SELECT count(*) c FROM hotspots ${where}`).get(...params).c;
-  const rows = db
-    .prepare(
-      `SELECT * FROM hotspots ${where} ORDER BY ${LEVEL_ORDER} DESC, score DESC, last_seen DESC LIMIT ? OFFSET ?`,
-    )
-    .all(...params, limit, offset);
+  const whereParts = [];
+  const params = [];
+  if (range) {
+    whereParts.push('range = ?');
+    params.push(range);
+  }
+
+  let rows;
+  let total;
+
+  if (q) {
+    // 分词 + SQL 预过滤（任一词命中 title/summary/source），再在 JS 里算相似度排序
+    const terms = q.split(/\s+/).filter(Boolean);
+    const likeParts = [];
+    for (const t of terms) {
+      const p = `%${t}%`;
+      likeParts.push('(title LIKE ? OR summary LIKE ? OR source LIKE ?)');
+      params.push(p, p, p);
+    }
+    whereParts.push(`(${likeParts.join(' OR ')})`);
+    const where = `WHERE ${whereParts.join(' AND ')}`;
+    const candidates = db.prepare(`SELECT * FROM hotspots ${where}`).all(...params);
+    const scored = candidates
+      .map((r) => ({ r, sim: rowSimilarity(r, terms) }))
+      .filter((x) => x.sim > 0)
+      .sort((a, b) => b.sim - a.sim || b.r.score - a.r.score || b.r.last_seen - a.r.last_seen);
+    total = scored.length;
+    rows = scored.slice(offset, offset + limit).map((x) => x.r);
+  } else {
+    const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+    total = db.prepare(`SELECT count(*) c FROM hotspots ${where}`).get(...params).c;
+    rows = db
+      .prepare(
+        `SELECT * FROM hotspots ${where} ORDER BY ${LEVEL_ORDER} DESC, score DESC, last_seen DESC LIMIT ? OFFSET ?`,
+      )
+      .all(...params, limit, offset);
+  }
+
   const ranges = db.prepare('SELECT DISTINCT range FROM hotspots').all().map((r) => r.range);
   res.json({
     hotspots: rows,
@@ -39,6 +88,7 @@ router.get('/hotspots', (req, res) => {
     page,
     limit,
     totalPages: Math.max(1, Math.ceil(total / limit)),
+    q,
   });
 });
 

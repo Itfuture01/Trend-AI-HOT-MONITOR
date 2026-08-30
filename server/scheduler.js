@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { config } from './config.js';
-import { db, dedupeItem, hashItem } from './db.js';
+import { db, dedupeItem, hashItem, touchHotspot } from './db.js';
 import { searchAll, hotAll } from './collectors/index.js';
 import { analyzeItems, aiEnabled } from './ai.js';
 import { notifyAlert, ensureVapidKeys } from './notify.js';
@@ -102,6 +102,8 @@ async function storeHotspots(items, range, topic) {
     const it = fresh[i];
     const v = verdicts[i] || {};
     if (v.relevant >= HOTSPOT_THRESHOLD && v.genuine) {
+      // 热点级去重：同标题+来源+范围已存在则仅刷新 last_seen，避免搜狗等变 URL 造成重复
+      if (touchHotspot(it.title, it.source, range) != null) continue;
       db.prepare(
         'INSERT INTO hotspots (title, summary, source, url, score, range, level, model, genuine) VALUES (?,?,?,?,?,?,?,?,?)',
       ).run(it.title, v.summary, it.source, it.url, v.relevant, range, v.level, aiEnabled() ? config.openrouter.model : '', v.genuine ? 1 : 0);
