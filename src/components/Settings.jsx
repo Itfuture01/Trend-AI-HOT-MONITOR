@@ -251,7 +251,7 @@ export default function Settings({ stats, onClose, onChanged }) {
             <button
               onClick={pushState === 'on' ? disablePush : enablePush}
               disabled={busy}
-              className="flex-1 rounded-lg bg-accent px-3 py-2 font-mono text-xs font-semibold text-[#052e16] transition hover:bg-signal disabled:opacity-50"
+              className="btn-gradient flex-1 rounded-xl px-3 py-2 font-mono text-xs font-semibold"
             >
               {pushState === 'on' ? '关闭推送' : '开启推送'}
             </button>

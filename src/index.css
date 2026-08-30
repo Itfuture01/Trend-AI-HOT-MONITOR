@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0f172a;
-  --color-panel: #1b2336;
-  --color-accent: #22c55e;
-  --color-signal: #4ade80;
+  --color-bg: #050510;
+  --color-panel: #0c0c1a;
+  --color-accent: #38bdf8;
+  --color-signal: #22d3ee;
+  --color-online: #22c55e;
   --color-warn: #f59e0b;
   --color-danger: #ef4444;
   --color-fg: #f8fafc;
   --color-muted: #94a3b8;
-  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line: rgba(255, 255, 255, 0.07);
   --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, monospace;
 }
@@ -21,11 +22,7 @@ body {
 
 body {
   margin: 0;
-  background-color: #0f172a;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 44px 44px, 44px 44px;
+  background-color: #050510;
   color: #f8fafc;
   font-family: "Fira Sans", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -53,6 +50,63 @@ body {
   animation: rise 0.35s ease-out both;
 }
 
+/* 状态点呼吸（Logo 旁在线指示器） */
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.35); }
+}
+.breathing-dot {
+  animation: breathe 2.2s ease-in-out infinite;
+}
+
+/* 流星雨粒子（紧急热点卡片，Aceternity Meteors） */
+.meteor {
+  position: absolute;
+  height: 1px;
+  width: 1px;
+  border-radius: 9999px;
+  background: var(--meteor-color, #38bdf8);
+  opacity: 0;
+  transform: rotate(215deg);
+  animation-name: meteor;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.meteor::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--meteor-color, #38bdf8), transparent);
+}
+@keyframes meteor {
+  0% { transform: rotate(215deg) translateX(0); opacity: 0; }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: rotate(215deg) translateX(-140px); opacity: 0; }
+}
+
+/* 渐变按钮（蓝青渐变 + 光晕） */
+.btn-gradient {
+  background: linear-gradient(90deg, #38bdf8 0%, #22d3ee 100%);
+  color: #04121c;
+  box-shadow: 0 4px 18px rgba(34, 211, 238, 0.32);
+  transition: filter 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+}
+.btn-gradient:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 26px rgba(34, 211, 238, 0.45);
+}
+.btn-gradient:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn-gradient:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+}
+
 /* 自定义滚动条 */
 ::-webkit-scrollbar {
   width: 8px;
@@ -71,28 +125,19 @@ body {
 
 /* 玻璃卡片 */
 .glass {
-  background: rgba(27, 35, 54, 0.72);
+  background: rgba(12, 12, 26, 0.72);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(2, 6, 23, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 /* 渐变文字（品牌标题 / 关键数字） */
 .text-gradient {
-  background: linear-gradient(90deg, #4ade80 0%, #22d3ee 60%, #2dd4bf 100%);
+  background: linear-gradient(90deg, #38bdf8 0%, #22d3ee 55%, #67e8f9 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-
-/* 扫描按钮光晕呼吸 */
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 16px rgba(34, 197, 94, 0.25); }
-  50% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
-}
-.glow-pulse {
-  animation: glow-pulse 2.4s ease-in-out infinite;
 }
 
 /* 文字截断 */
@@ -107,17 +152,19 @@ body {
 .tech-scanlines {
   background-image: repeating-linear-gradient(
     0deg,
-    rgba(148, 163, 184, 0.06) 0px,
-    rgba(148, 163, 184, 0.06) 1px,
+    rgba(148, 163, 184, 0.05) 0px,
+    rgba(148, 163, 184, 0.05) 1px,
     transparent 1px,
     transparent 4px
   );
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
-  .blip-dot {
+  .blip-dot,
+  .meteor,
+  .breathing-dot {
     animation: none !important;
   }
 }

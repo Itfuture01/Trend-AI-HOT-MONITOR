@@ -3,7 +3,7 @@ import { Spotlight } from './ui/spotlight.jsx';
 import { IconFlame, IconTrendingUp, IconSignal, IconHash } from './icons.jsx';
 
 const CARDS = [
-  { key: 'hotspots', label: '总热点', color: '#4ade80', Icon: IconSignal },
+  { key: 'hotspots', label: '总热点', color: '#38bdf8', Icon: IconSignal },
   { key: 'todayNew', label: '今日新增', color: '#22d3ee', Icon: IconTrendingUp },
   { key: 'urgent', label: '紧急热点', color: '#ef4444', Icon: IconFlame },
   { key: 'keywords', label: '监控关键词', color: '#f59e0b', Icon: IconHash },

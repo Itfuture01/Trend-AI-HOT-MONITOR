@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { timeAgo } from '../lib.js';
-import { IconBell, IconMail, IconWarn, IconExternal } from './icons.jsx';
+import { api } from '../api.js';
+import { IconBell, IconMail, IconWarn, IconExternal, IconTrash } from './icons.jsx';
 
 function channelBadges(sentVia = '') {
   const via = (sentVia || '').split(',').filter(Boolean);
@@ -12,7 +14,22 @@ function channelBadges(sentVia = '') {
   );
 }
 
-export default function AlertStream({ alerts = [] }) {
+export default function AlertStream({ alerts = [], onCleared }) {
+  const [busy, setBusy] = useState(false);
+
+  async function clearAll() {
+    if (busy || alerts.length === 0) return;
+    setBusy(true);
+    try {
+      await api.clearAlerts();
+      onCleared?.();
+    } catch (e) {
+      console.error('[clearAlerts]', e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="glass flex max-h-[70vh] flex-col rounded-2xl p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -20,7 +37,20 @@ export default function AlertStream({ alerts = [] }) {
           <IconBell className="h-4 w-4 text-warn" />
           实时告警流
         </h2>
-        <span className="font-mono text-xs text-muted">{alerts.length}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-muted">{alerts.length}</span>
+          {alerts.length > 0 && (
+            <button
+              onClick={clearAll}
+              disabled={busy}
+              aria-label="清空告警"
+              title="清空告警"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted/50 transition hover:text-danger disabled:opacity-40"
+            >
+              <IconTrash className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="-mr-1 space-y-2 overflow-y-auto pr-1">

@@ -106,6 +106,14 @@ db.exec(`UPDATE hotspots SET level = CASE
   ELSE 'low' END
   WHERE model = ''`);
 
+// 迁移：旧版「热点范围」是固定 defaultRange（如 'AI编程'），现已统一为「监控关键词即范围」。
+// 删除既不属于任何关键词、也不是 'trending' 的遗留 range 热点，避免出现幽灵标签。
+db.exec(`
+  DELETE FROM hotspots
+  WHERE range != 'trending'
+    AND range NOT IN (SELECT keyword FROM keywords)
+`);
+
 // 热点去重：按「标题 + 来源 + 范围」判断是否已存在。
 // 搜狗等源的 URL 每次抓取都会变（带随机 UUID），不能只按 URL 去重。
 // 已存在则刷新 last_seen 并返回 id，不存在返回 null。

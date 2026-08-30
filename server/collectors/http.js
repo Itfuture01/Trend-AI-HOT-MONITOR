@@ -29,27 +29,32 @@ async function throttle() {
 export async function fetchText(url, { headers = {}, timeoutMs = 9000, retries = 1 } = {}) {
   await throttle();
   let lastErr;
-  for (let i = 0; i <= retries; i++) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': UA,
-          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-          ...headers,
-        },
-        signal: ctrl.signal,
-        redirect: 'follow',
-        ...(proxyAgent ? { dispatcher: proxyAgent } : {}),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.text();
-    } catch (e) {
-      lastErr = e;
-      if (i < retries) await sleep(1000 * (i + 1));
-    } finally {
-      clearTimeout(t);
+  // 代理可用时优先走代理；代理连接失败（如代理未启动）则回退直连，
+  // 避免一个失效代理导致所有源（含可直连的中文源/HN）全部失败。
+  const dispatchers = proxyAgent ? [proxyAgent, null] : [null];
+  for (const dispatcher of dispatchers) {
+    for (let i = 0; i <= retries; i++) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent': UA,
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            ...headers,
+          },
+          signal: ctrl.signal,
+          redirect: 'follow',
+          ...(dispatcher ? { dispatcher } : {}),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.text();
+      } catch (e) {
+        lastErr = e;
+        if (i < retries) await sleep(1000 * (i + 1));
+      } finally {
+        clearTimeout(t);
+      }
     }
   }
   throw lastErr;

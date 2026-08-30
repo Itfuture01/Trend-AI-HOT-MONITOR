@@ -25,11 +25,21 @@ export default function StatusBar({ stats, connected, scanning, onScan, onOpenSe
   const last = status.lastRun?.manual || status.lastRun?.hotspot || status.lastRun?.keyword;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0f172a]/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-white/5 bg-[#050510]/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-4 py-3 lg:px-6">
         {/* 品牌 */}
         <div className="flex items-center gap-2.5">
-          <IconRadar className="h-6 w-6 text-signal" />
+          <div className="relative">
+            <IconRadar className="h-6 w-6 text-signal" />
+            {/* 在线呼吸指示点（绿色） */}
+            <span
+              className={`breathing-dot absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ${
+                connected ? 'bg-online' : 'bg-muted/60'
+              }`}
+              style={connected ? { boxShadow: '0 0 8px rgba(34, 197, 94, 0.8)' } : undefined}
+              title={connected ? '服务在线' : '连接断开'}
+            />
+          </div>
           <div className="leading-tight">
             <div className="text-gradient font-mono text-sm font-semibold tracking-[0.2em]">TREND&nbsp;MONITOR</div>
             <div className="text-[11px] text-muted">AI 热点雷达</div>
@@ -56,9 +66,7 @@ export default function StatusBar({ stats, connected, scanning, onScan, onOpenSe
           <button
             onClick={onScan}
             disabled={scanning}
-            className={`group flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 font-mono text-xs font-semibold text-[#052e16] transition hover:bg-signal disabled:cursor-not-allowed disabled:opacity-50 ${
-              scanning ? '' : 'glow-pulse'
-            }`}
+            className="btn-gradient group flex items-center gap-2 rounded-xl px-3.5 py-2 font-mono text-xs font-semibold"
           >
             <IconScan className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
             {scanning ? '扫描中' : '立即扫描'}

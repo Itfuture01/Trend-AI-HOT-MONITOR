@@ -91,8 +91,6 @@ const config = {
     const v = Number(get('AI_THRESHOLD', '0.6'));
     return Number.isFinite(v) && v <= 1 ? Math.round(v * 100) : v;
   })(),
-  defaultRange: get('DEFAULT_RANGE', 'AI编程'),
-
   vapidPublicKey: get('VAPID_PUBLIC_KEY'),
   vapidPrivateKey: get('VAPID_PRIVATE_KEY'),
   vapidSubject: get('VAPID_SUBJECT', 'mailto:admin@example.com'),

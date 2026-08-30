@@ -69,7 +69,7 @@ export default function KeywordPanel({ keywords = [], onChanged }) {
           type="submit"
           disabled={busy || !input.trim()}
           aria-label="添加关键词"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-[#052e16] transition hover:bg-signal disabled:opacity-40"
+          className="btn-gradient flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
         >
           <IconPlus className="h-4 w-4" />
         </button>

@@ -5,16 +5,26 @@ import Radar from './components/Radar.jsx';
 import StatCards from './components/StatCards.jsx';
 import KeywordPanel from './components/KeywordPanel.jsx';
 import HotspotList from './components/HotspotList.jsx';
+import SearchView from './components/SearchView.jsx';
+import AlertStream from './components/AlertStream.jsx';
 import Settings from './components/Settings.jsx';
 import { AuroraBackground } from './components/ui/aurora-background.jsx';
+import { Meteors } from './components/ui/meteors.jsx';
+import { IconRadar, IconHash, IconSearch } from './components/icons.jsx';
+
+const TABS = [
+  { key: 'radar', label: '热点雷达', Icon: IconRadar },
+  { key: 'keywords', label: '监控词', Icon: IconHash },
+  { key: 'search', label: '搜索关键词', Icon: IconSearch },
+];
 
 export default function App() {
+  const [tab, setTab] = useState('radar');
   const [stats, setStats] = useState(null);
   const [hotspots, setHotspots] = useState([]);
   const [ranges, setRanges] = useState([]);
   const [range, setRange] = useState('');
   const [page, setPage] = useState(1);
-  const [query, setQuery] = useState('');
   const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1 });
   const [keywords, setKeywords] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -24,11 +34,11 @@ export default function App() {
   const scanTimer = useRef(null);
 
   const load = useCallback(
-    async (rng = range, pg = page, q = query) => {
+    async (rng = range, pg = page) => {
       try {
         const [s, h, k, a] = await Promise.all([
           api.stats(),
-          api.hotspots(rng, pg, 20, q),
+          api.hotspots(rng, pg, 20),
           api.keywords(),
           api.alerts(),
         ]);
@@ -42,7 +52,7 @@ export default function App() {
         console.error('[load]', e);
       }
     },
-    [range, page, query],
+    [range, page],
   );
 
   useEffect(() => {
@@ -64,11 +74,6 @@ export default function App() {
 
   const handleRange = (r) => {
     setRange(r);
-    setPage(1);
-  };
-
-  const handleQuery = (q) => {
-    setQuery(q);
     setPage(1);
   };
 
@@ -101,42 +106,68 @@ export default function App() {
         alerts={alerts}
       />
 
-      <main className="relative z-10 mx-auto mt-6 grid max-w-[1500px] grid-cols-1 items-start gap-5 px-4 lg:grid-cols-12 lg:px-6">
-        {/* 中上方：热点雷达（映衬项目名，光点可点击跳转原文） */}
-        <div className="lg:col-span-12">
-          <div className="glass relative overflow-hidden rounded-2xl p-6">
-            <Radar hotspots={hotspots} range={range} total={pageInfo.total} />
-            <p className="mt-3 text-center font-mono text-xs text-muted">
-              光点越亮越大 → 相关性越强 · 点击光点跳转原文
-            </p>
+      {/* Tab 图标导航 */}
+      <nav className="relative z-10 mx-auto mt-5 flex max-w-[1500px] items-center justify-center px-4 lg:px-6">
+        <div className="flex items-center gap-1 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5 backdrop-blur-md">
+          {TABS.map(({ key, label, Icon }) => {
+            const active = tab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm transition ${
+                  active
+                    ? 'bg-accent/15 text-signal shadow-[inset_0_0_0_1px_rgba(34,211,238,0.25)]'
+                    : 'text-muted hover:bg-white/5 hover:text-fg'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <main className="relative z-10 mx-auto mt-5 max-w-[1500px] px-4 lg:px-6">
+        {/* 热点雷达：从上往下 统计指标 → 雷达图 → 热点信号 */}
+        {tab === 'radar' && (
+          <div className="space-y-5">
+            <StatCards stats={stats} />
+            <div className="glass relative overflow-hidden rounded-2xl p-5">
+              <Meteors number={10} color="#22d3ee" className="opacity-40" />
+              <Radar hotspots={hotspots} range={range} total={pageInfo.total} />
+              <p className="mt-3 text-center font-mono text-xs text-muted">
+                光点越亮越大 → 相关性越强 · 点击光点跳转原文
+              </p>
+            </div>
+            <HotspotList
+              hotspots={hotspots}
+              ranges={ranges}
+              range={range}
+              onRange={handleRange}
+              page={page}
+              total={pageInfo.total}
+              totalPages={pageInfo.totalPages}
+              onPage={setPage}
+            />
           </div>
-        </div>
+        )}
 
-        {/* 统计指标 */}
-        <div className="lg:col-span-12">
-          <StatCards stats={stats} />
-        </div>
+        {/* 监控词：双栏（左关键词 / 右告警流） */}
+        {tab === 'keywords' && (
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
+            <div className="lg:col-span-5">
+              <KeywordPanel keywords={keywords} onChanged={load} />
+            </div>
+            <div className="lg:col-span-7">
+              <AlertStream alerts={alerts} onCleared={load} />
+            </div>
+          </div>
+        )}
 
-        {/* 左：关键词监控 */}
-        <div className="order-2 lg:order-none lg:col-span-3">
-          <KeywordPanel keywords={keywords} onChanged={load} />
-        </div>
-
-        {/* 主体：热点列表 */}
-        <div className="order-1 lg:order-none lg:col-span-9">
-          <HotspotList
-            hotspots={hotspots}
-            ranges={ranges}
-            range={range}
-            onRange={handleRange}
-            query={query}
-            onQuery={handleQuery}
-            page={page}
-            total={pageInfo.total}
-            totalPages={pageInfo.totalPages}
-            onPage={setPage}
-          />
-        </div>
+        {/* 搜索关键词 */}
+        {tab === 'search' && <SearchView />}
       </main>
 
       {settingsOpen && <Settings stats={stats} onClose={() => setSettingsOpen(false)} onChanged={load} />}

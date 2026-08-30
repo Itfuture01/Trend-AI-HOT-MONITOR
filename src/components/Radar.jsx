@@ -21,9 +21,9 @@ export default function Radar({ hotspots = [], range = '', total = null }) {
       <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
         <defs>
           <radialGradient id="radar-bg" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(74,222,128,0.10)" />
-            <stop offset="70%" stopColor="rgba(74,222,128,0.02)" />
-            <stop offset="100%" stopColor="rgba(74,222,128,0)" />
+            <stop offset="0%" stopColor="rgba(34,211,238,0.12)" />
+            <stop offset="70%" stopColor="rgba(34,211,238,0.02)" />
+            <stop offset="100%" stopColor="rgba(34,211,238,0)" />
           </radialGradient>
         </defs>
         <circle cx="100" cy="100" r="95" fill="url(#radar-bg)" />
@@ -72,14 +72,14 @@ export default function Radar({ hotspots = [], range = '', total = null }) {
       <div
         className="radar-sweep pointer-events-none absolute inset-0 rounded-full"
         style={{
-          background: 'conic-gradient(from 0deg, rgba(74,222,128,0.28), rgba(74,222,128,0) 72deg)',
+          background: 'conic-gradient(from 0deg, rgba(34,211,238,0.30), rgba(34,211,238,0) 72deg)',
           animation: 'radar-spin 4.5s linear infinite',
         }}
       />
 
       {/* 中心读数 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-        <div className="font-mono text-4xl font-semibold text-signal drop-shadow-[0_0_12px_rgba(74,222,128,0.6)]">
+        <div className="font-mono text-4xl font-semibold text-signal drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]">
           {total ?? hotspots.length}
         </div>
         <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.25em] text-muted">

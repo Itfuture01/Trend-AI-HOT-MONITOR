@@ -70,28 +70,25 @@ export async function runHotspotAggregation() {
     const hot = await hotAll();
     const nativeStored = await storeHotspots(hot.items, 'trending', NATIVE_HOT_TOPIC);
 
-    // 2) 各范围的关键词搜索
-    const ranges = collectRanges();
-    const byRange = {};
-    for (const r of ranges) {
-      const { items, errors } = await searchAll(r);
-      byRange[r] = { collected: items.length, stored: await storeHotspots(items, r, r), errors };
+    // 2) 各监控关键词的搜索（热点范围 = 监控关键词，动态跟随关键词增删）
+    const keywords = db.prepare('SELECT * FROM keywords WHERE enabled = 1').all();
+    const byKeyword = {};
+    for (const kw of keywords) {
+      const { items, errors } = await searchAll(kw.keyword);
+      byKeyword[kw.keyword] = {
+        collected: items.length,
+        stored: await storeHotspots(items, kw.keyword, kw.keyword),
+        errors,
+      };
     }
 
     lastRun.hotspot = Date.now();
-    const summary = { type: 'hotspot', nativeStored, byRange, at: Date.now() };
+    const summary = { type: 'hotspot', nativeStored, byKeyword, at: Date.now() };
     broadcast('scan-done', summary);
     return summary;
   } finally {
     running.hotspot = false;
   }
-}
-
-function collectRanges() {
-  const set = new Set([config.defaultRange]);
-  const scopes = db.prepare('SELECT DISTINCT scope FROM keywords WHERE scope != \'\'').all();
-  for (const s of scopes) if (s.scope) set.add(s.scope);
-  return [...set];
 }
 
 async function storeHotspots(items, range, topic) {
@@ -153,8 +150,8 @@ function summarize(r) {
     const total = r.keywords.reduce((a, k) => a + (k.alerted || 0), 0);
     return `${r.keywords.length} 个关键词，告警 ${total} 条`;
   }
-  if (r.byRange) {
-    return `原生 ${r.nativeStored} 条 + 范围 ${Object.keys(r.byRange).length} 个`;
+  if (r.byKeyword) {
+    return `原生 ${r.nativeStored} 条 + 关键词 ${Object.keys(r.byKeyword).length} 个`;
   }
   return '';
 }

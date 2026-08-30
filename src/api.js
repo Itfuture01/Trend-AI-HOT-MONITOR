@@ -20,6 +20,7 @@ export const api = {
   updateKeyword: (id, patch) => req('PATCH', `/keywords/${id}`, patch),
   removeKeyword: (id) => req('DELETE', `/keywords/${id}`),
   alerts: (limit = 50) => req('GET', `/alerts?limit=${limit}`),
+  clearAlerts: () => req('DELETE', '/alerts'),
   viewHotspot: (id) => req('POST', `/hotspots/${id}/view`),
   scan: () => req('POST', '/scan'),
   sources: () => req('GET', '/sources'),

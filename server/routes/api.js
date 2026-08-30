@@ -80,7 +80,11 @@ router.get('/hotspots', (req, res) => {
       .all(...params, limit, offset);
   }
 
-  const ranges = db.prepare('SELECT DISTINCT range FROM hotspots').all().map((r) => r.range);
+  // 热点范围 = 监控关键词：标签来自关键词表（含停用词，历史热点仍可浏览）+ 固定的原生热搜榜
+  const ranges = [
+    'trending',
+    ...db.prepare('SELECT keyword FROM keywords ORDER BY id DESC').all().map((r) => r.keyword),
+  ];
   res.json({
     hotspots: rows,
     ranges,
@@ -143,6 +147,11 @@ router.patch('/keywords/:id', (req, res) => {
 
 router.delete('/keywords/:id', (req, res) => {
   const id = Number(req.params.id);
+  // 删除关键词时一并清理其热点（热点范围 = 监控关键词，删词即删该范围）
+  const row = db.prepare('SELECT * FROM keywords WHERE id = ?').get(id);
+  if (row) {
+    db.prepare('DELETE FROM hotspots WHERE range = ?').run(row.keyword);
+  }
   db.prepare('DELETE FROM keywords WHERE id = ?').run(id);
   res.json({ ok: true });
 });
@@ -178,6 +187,11 @@ router.get('/alerts', (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 50, 200);
   const rows = db.prepare('SELECT * FROM alerts ORDER BY id DESC LIMIT ?').all(limit);
   res.json({ alerts: rows });
+});
+
+router.delete('/alerts', (req, res) => {
+  db.prepare('DELETE FROM alerts').run();
+  res.json({ ok: true });
 });
 
 // ---------- 浏览器推送 ----------
@@ -238,7 +252,6 @@ router.get('/stats', (req, res) => {
     twitterEnabled: !!config.twitter.apiKey,
     hasProxy: !!(process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.https_proxy),
     model: config.openrouter.model,
-    defaultRange: config.defaultRange,
     status: getStatus(),
   });
 });

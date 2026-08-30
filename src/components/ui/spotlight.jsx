@@ -3,7 +3,7 @@ import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
 import { cn } from '../../lib/cn.js';
 
 // 光标跟随光晕（Aceternity Spotlight）：悬停时在卡片上跟随鼠标显示径向光斑
-export function Spotlight({ className, children, color = 'rgba(74, 222, 128, 0.14)' }) {
+export function Spotlight({ className, children, color = 'rgba(56, 189, 248, 0.14)' }) {
   const ref = useRef(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
