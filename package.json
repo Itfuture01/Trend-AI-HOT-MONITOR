@@ -9,8 +9,10 @@
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
     "dev:web": "vite",
     "build": "vite build",
+    "test": "echo \"no tests configured\"",
     "smoke": "node scripts/smoke.mjs",
-    "cli": "node cli.mjs"
+    "cli": "node cli.mjs",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=23"
@@ -29,8 +31,11 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.0",
+    "husky": "^9.1.7",
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.2"
   }
