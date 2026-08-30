@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { scorePct, scoreColor, levelMeta, timeAgo } from '../lib.js';
 import { api } from '../api.js';
+import { Spotlight } from './ui/spotlight.jsx';
 import { IconExternal, IconEye, IconCpu } from './icons.jsx';
 
 function Tab({ label, active, onClick }) {
@@ -23,16 +24,20 @@ function HotCard({ h }) {
   const views = (h.views || 0) + delta;
 
   return (
-    <a
-      href={h.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => {
-        setDelta((x) => x + 1);
-        api.viewHotspot(h.id).catch(() => {});
-      }}
-      className="group animate-rise block rounded-xl border border-white/5 bg-white/[0.02] p-4 transition hover:border-accent/30 hover:bg-white/[0.04]"
+    <Spotlight
+      color="rgba(74, 222, 128, 0.10)"
+      className="animate-rise rounded-xl border border-white/5 bg-white/[0.02] transition-colors hover:border-accent/30 hover:bg-white/[0.04]"
     >
+      <a
+        href={h.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => {
+          setDelta((x) => x + 1);
+          api.viewHotspot(h.id).catch(() => {});
+        }}
+        className="block p-4"
+      >
       <div className="flex items-start gap-3">
         {/* 热点等级 */}
         <span
@@ -85,7 +90,8 @@ function HotCard({ h }) {
         </span>
         <span className="ml-auto font-mono">{timeAgo(h.last_seen)}</span>
       </div>
-    </a>
+      </a>
+    </Spotlight>
   );
 }
 

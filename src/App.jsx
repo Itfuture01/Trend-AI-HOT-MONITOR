@@ -5,6 +5,7 @@ import StatCards from './components/StatCards.jsx';
 import KeywordPanel from './components/KeywordPanel.jsx';
 import HotspotList from './components/HotspotList.jsx';
 import Settings from './components/Settings.jsx';
+import { AuroraBackground } from './components/ui/aurora-background.jsx';
 
 export default function App() {
   const [stats, setStats] = useState(null);
@@ -73,7 +74,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="relative min-h-screen pb-12">
+      <AuroraBackground />
       <StatusBar
         stats={stats}
         connected={connected}
@@ -83,7 +85,7 @@ export default function App() {
         alerts={alerts}
       />
 
-      <main className="mx-auto mt-6 grid max-w-[1500px] grid-cols-1 items-start gap-5 px-4 lg:grid-cols-12 lg:px-6">
+      <main className="relative z-10 mx-auto mt-6 grid max-w-[1500px] grid-cols-1 items-start gap-5 px-4 lg:grid-cols-12 lg:px-6">
         {/* 统计指标 */}
         <div className="lg:col-span-12">
           <StatCards stats={stats} />

@@ -31,7 +31,7 @@ export default function StatusBar({ stats, connected, scanning, onScan, onOpenSe
         <div className="flex items-center gap-2.5">
           <IconRadar className="h-6 w-6 text-signal" />
           <div className="leading-tight">
-            <div className="font-mono text-sm font-semibold tracking-[0.2em] text-fg">TREND&nbsp;MONITOR</div>
+            <div className="text-gradient font-mono text-sm font-semibold tracking-[0.2em]">TREND&nbsp;MONITOR</div>
             <div className="text-[11px] text-muted">AI 热点雷达</div>
           </div>
         </div>
@@ -56,7 +56,9 @@ export default function StatusBar({ stats, connected, scanning, onScan, onOpenSe
           <button
             onClick={onScan}
             disabled={scanning}
-            className="group flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 font-mono text-xs font-semibold text-[#052e16] transition hover:bg-signal disabled:cursor-not-allowed disabled:opacity-50"
+            className={`group flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 font-mono text-xs font-semibold text-[#052e16] transition hover:bg-signal disabled:cursor-not-allowed disabled:opacity-50 ${
+              scanning ? '' : 'glow-pulse'
+            }`}
           >
             <IconScan className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
             {scanning ? '扫描中' : '立即扫描'}
