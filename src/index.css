@@ -80,7 +80,7 @@ body {
 
 /* 渐变文字（品牌标题 / 关键数字） */
 .text-gradient {
-  background: linear-gradient(90deg, #4ade80 0%, #22d3ee 55%, #8b5cf6 100%);
+  background: linear-gradient(90deg, #4ade80 0%, #22d3ee 60%, #2dd4bf 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -101,6 +101,18 @@ body {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* 科技感：轻微扫描线纹理（监控台 / CRT 质感），极低透明度不干扰阅读 */
+.tech-scanlines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(148, 163, 184, 0.06) 0px,
+    rgba(148, 163, 184, 0.06) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  opacity: 0.35;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from './api.js';
 import StatusBar from './components/StatusBar.jsx';
+import Radar from './components/Radar.jsx';
 import StatCards from './components/StatCards.jsx';
 import KeywordPanel from './components/KeywordPanel.jsx';
 import HotspotList from './components/HotspotList.jsx';
@@ -12,6 +13,8 @@ export default function App() {
   const [hotspots, setHotspots] = useState([]);
   const [ranges, setRanges] = useState([]);
   const [range, setRange] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1 });
   const [keywords, setKeywords] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [connected, setConnected] = useState(false);
@@ -20,24 +23,25 @@ export default function App() {
   const scanTimer = useRef(null);
 
   const load = useCallback(
-    async (rng = range) => {
+    async (rng = range, pg = page) => {
       try {
         const [s, h, k, a] = await Promise.all([
           api.stats(),
-          api.hotspots(rng),
+          api.hotspots(rng, pg),
           api.keywords(),
           api.alerts(),
         ]);
         setStats(s);
         setHotspots(h.hotspots || []);
         setRanges(h.ranges || []);
+        setPageInfo({ total: h.total || 0, totalPages: h.totalPages || 1 });
         setKeywords(k.keywords || []);
         setAlerts(a.alerts || []);
       } catch (e) {
         console.error('[load]', e);
       }
     },
-    [range],
+    [range, page],
   );
 
   useEffect(() => {
@@ -56,6 +60,11 @@ export default function App() {
     });
     return () => es.close();
   }, [load]);
+
+  const handleRange = (r) => {
+    setRange(r);
+    setPage(1);
+  };
 
   const handleScan = async () => {
     if (scanning) return;
@@ -76,6 +85,7 @@ export default function App() {
   return (
     <div className="relative min-h-screen pb-12">
       <AuroraBackground />
+      <div className="tech-scanlines pointer-events-none fixed inset-0 z-[1]" aria-hidden="true" />
       <StatusBar
         stats={stats}
         connected={connected}
@@ -86,6 +96,16 @@ export default function App() {
       />
 
       <main className="relative z-10 mx-auto mt-6 grid max-w-[1500px] grid-cols-1 items-start gap-5 px-4 lg:grid-cols-12 lg:px-6">
+        {/* 中上方：热点雷达（映衬项目名，光点可点击跳转原文） */}
+        <div className="lg:col-span-12">
+          <div className="glass relative overflow-hidden rounded-2xl p-6">
+            <Radar hotspots={hotspots} range={range} total={pageInfo.total} />
+            <p className="mt-3 text-center font-mono text-xs text-muted">
+              光点越亮越大 → 相关性越强 · 点击光点跳转原文
+            </p>
+          </div>
+        </div>
+
         {/* 统计指标 */}
         <div className="lg:col-span-12">
           <StatCards stats={stats} />
@@ -98,7 +118,16 @@ export default function App() {
 
         {/* 主体：热点列表 */}
         <div className="order-1 lg:order-none lg:col-span-9">
-          <HotspotList hotspots={hotspots} ranges={ranges} range={range} onRange={setRange} />
+          <HotspotList
+            hotspots={hotspots}
+            ranges={ranges}
+            range={range}
+            onRange={handleRange}
+            page={page}
+            total={pageInfo.total}
+            totalPages={pageInfo.totalPages}
+            onPage={setPage}
+          />
         </div>
       </main>
 

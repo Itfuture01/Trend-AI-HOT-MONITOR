@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { hashStr, scoreColor } from '../lib.js';
+import { api } from '../api.js';
 
-export default function Radar({ hotspots = [], range = '' }) {
+export default function Radar({ hotspots = [], range = '', total = null }) {
   const blips = useMemo(() => {
     return hotspots.slice(0, 16).map((h) => {
       const n = hashStr((h.title || '') + (h.url || ''));
@@ -41,9 +42,18 @@ export default function Radar({ hotspots = [], range = '' }) {
         <line x1="100" y1="2" x2="100" y2="198" stroke="rgba(148,163,184,0.12)" strokeWidth="0.5" />
         <line x1="100" y1="100" x2="100" y2="2" stroke="rgba(148,163,184,0.12)" strokeWidth="0.5" />
 
-        {/* 光点 */}
+        {/* 光点（可点击跳转原文） */}
         {blips.map((b, i) => (
-          <g key={i}>
+          <a
+            key={i}
+            href={b.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cursor-pointer"
+            onClick={() => b.id && api.viewHotspot(b.id).catch(() => {})}
+          >
+            {/* 透明扩大命中区，便于点击 */}
+            <circle cx={b.x} cy={b.y} r={Math.max(b.r + 3.5, 9)} fill="transparent" />
             <circle
               cx={b.x}
               cy={b.y}
@@ -54,7 +64,7 @@ export default function Radar({ hotspots = [], range = '' }) {
             >
               <title>{`${b.title} · ${Math.round(b.score || 0)}%`}</title>
             </circle>
-          </g>
+          </a>
         ))}
       </svg>
 
@@ -70,7 +80,7 @@ export default function Radar({ hotspots = [], range = '' }) {
       {/* 中心读数 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
         <div className="font-mono text-4xl font-semibold text-signal drop-shadow-[0_0_12px_rgba(74,222,128,0.6)]">
-          {hotspots.length}
+          {total ?? hotspots.length}
         </div>
         <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.25em] text-muted">
           {range || 'ALL'}

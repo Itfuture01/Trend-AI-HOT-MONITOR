@@ -50,10 +50,24 @@ function subscriptionToPlain(sub) {
   };
 }
 
+// 稳健地请求通知权限，兼容返回 Promise / 回调 / 同步值三种实现
+async function ensurePermission() {
+  if (typeof Notification === 'undefined') return 'unsupported';
+  if (Notification.permission === 'granted') return 'granted';
+  if (Notification.permission === 'denied') return 'denied';
+  try {
+    const r = Notification.requestPermission();
+    return r && typeof r.then === 'function' ? await r : Notification.permission;
+  } catch {
+    return Notification.permission;
+  }
+}
+
 export default function Settings({ stats, onClose, onChanged }) {
   const [pushState, setPushState] = useState('checking'); // checking | on | off | unsupported
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [perm, setPerm] = useState(() => (typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'));
   const [sources, setSources] = useState([]);
 
   useEffect(() => {
@@ -88,27 +102,57 @@ export default function Settings({ stats, onClose, onChanged }) {
     setBusy(true);
     setMsg('');
     try {
-      // 显式请求通知权限：权限未决时 pushManager.subscribe 可能直接失败
-      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-        await Notification.requestPermission();
-      }
-      if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-        setMsg('❌ 通知权限被拒绝，请在浏览器地址栏点击锁/信息图标 → 允许通知后重试');
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        setMsg('❌ 当前环境不支持推送（需 HTTPS 或 localhost）');
         return;
       }
 
+      // 1) 先拿通知权限（在用户点击手势内请求，成功率最高）
+      const p = await ensurePermission();
+      setPerm(p);
+      if (p === 'unsupported') {
+        setMsg('❌ 当前浏览器不支持通知');
+        return;
+      }
+      if (p !== 'granted') {
+        setMsg(
+          p === 'denied'
+            ? '❌ 通知权限已被拒绝：请点击地址栏锁图标 → 通知 → 允许，然后重试'
+            : '⚠️ 未获得通知权限，请在浏览器弹出的提示中选择「允许」后重试',
+        );
+        return;
+      }
+
+      // 2) 注册 SW 并确保已就绪
       const reg = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+
+      // 3) 订阅推送（需服务器 VAPID 公钥）
       const { publicKey } = await api.vapidPublicKey();
+      if (!publicKey) {
+        setMsg('❌ 服务器未返回 VAPID 公钥');
+        return;
+      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
+
+      // 4) 把订阅上报给后端
       await api.subscribe(subscriptionToPlain(sub));
       setPushState('on');
       setMsg('✅ 浏览器推送已开启');
       await onChanged();
     } catch (e) {
-      setMsg('❌ 订阅失败：' + e.message + (e.name === 'NotAllowedError' ? '（通知权限被拒绝）' : ''));
+      console.error('[push] 订阅失败：', e);
+      const name = e && e.name;
+      const hint =
+        name === 'NotAllowedError'
+          ? '（通知权限被拒绝，请在地址栏允许通知）'
+          : name === 'AbortError'
+            ? '（订阅被中止，请重试）'
+            : '';
+      setMsg('❌ 订阅失败：' + (e && e.message ? e.message : String(e)) + hint);
     } finally {
       setBusy(false);
     }
@@ -261,7 +305,21 @@ export default function Settings({ stats, onClose, onChanged }) {
           </ul>
         </div>
 
-        {msg && <p className="mt-3 text-center text-xs text-muted">{msg}</p>}
+        {msg && (
+          <p
+            className={`mt-3 text-center text-xs ${
+              msg.startsWith('✅') ? 'text-signal' : msg.startsWith('⚠️') ? 'text-warn' : 'text-danger'
+            }`}
+          >
+            {msg}
+          </p>
+        )}
+
+        {perm === 'denied' && pushState !== 'unsupported' && !msg && (
+          <p className="mt-3 text-center text-xs text-warn">
+            通知权限已被拒绝：请在浏览器地址栏点击锁图标 → 通知 → 选择「允许」，然后回到这里重新开启
+          </p>
+        )}
       </div>
     </div>
   );

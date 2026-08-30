@@ -19,19 +19,27 @@ const LEVEL_ORDER = `CASE level WHEN 'urgent' THEN 4 WHEN 'high' THEN 3 WHEN 'me
 
 router.get('/hotspots', (req, res) => {
   const range = req.query.range || '';
-  const limit = Math.min(Number(req.query.limit) || 50, 200);
-  let rows;
-  if (range) {
-    rows = db
-      .prepare(`SELECT * FROM hotspots WHERE range = ? ORDER BY ${LEVEL_ORDER} DESC, score DESC, last_seen DESC LIMIT ?`)
-      .all(range, limit);
-  } else {
-    rows = db
-      .prepare(`SELECT * FROM hotspots ORDER BY ${LEVEL_ORDER} DESC, score DESC, last_seen DESC LIMIT ?`)
-      .all(limit);
-  }
+  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+  const page = Math.max(Number(req.query.page) || 1, 1);
+  const offset = (page - 1) * limit;
+  const where = range ? 'WHERE range = ?' : '';
+  const params = range ? [range] : [];
+
+  const total = db.prepare(`SELECT count(*) c FROM hotspots ${where}`).get(...params).c;
+  const rows = db
+    .prepare(
+      `SELECT * FROM hotspots ${where} ORDER BY ${LEVEL_ORDER} DESC, score DESC, last_seen DESC LIMIT ? OFFSET ?`,
+    )
+    .all(...params, limit, offset);
   const ranges = db.prepare('SELECT DISTINCT range FROM hotspots').all().map((r) => r.range);
-  res.json({ hotspots: rows, ranges });
+  res.json({
+    hotspots: rows,
+    ranges,
+    total,
+    page,
+    limit,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+  });
 });
 
 // 查看次数 +1（点击跳转源页面时调用）

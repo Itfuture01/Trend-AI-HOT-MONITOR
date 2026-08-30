@@ -1,11 +1,12 @@
 import { motion, useReducedMotion } from 'framer-motion';
 
 // 极光背景（Aceternity 风格）：固定全屏、多层彩色光斑缓慢漂移，尊重 prefers-reduced-motion
+// 配色：翡翠绿 → 青 → 青绿（科技感，去掉蓝紫）
 const BLOBS = [
   { color: '#22c55e', left: '-12%', top: '-14%', scale: 1.1, dur: 20, delay: 0 },
   { color: '#22d3ee', left: '26%', top: '8%', scale: 1.25, dur: 26, delay: 3 },
-  { color: '#8b5cf6', left: '58%', top: '-8%', scale: 1.0, dur: 30, delay: 6 },
-  { color: '#38bdf8', left: '82%', top: '12%', scale: 1.15, dur: 22, delay: 9 },
+  { color: '#2dd4bf', left: '58%', top: '-8%', scale: 1.0, dur: 30, delay: 6 },
+  { color: '#5eead4', left: '82%', top: '12%', scale: 1.15, dur: 22, delay: 9 },
 ];
 
 export function AuroraBackground({ showRadialGradient = true }) {
