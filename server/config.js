@@ -65,7 +65,7 @@ const config = {
 
   openrouter: {
     apiKey: get('OPENROUTER_API_KEY'),
-    model: get('OPENROUTER_MODEL', 'google/gemini-2.0-flash-001'),
+    model: get('OPENROUTER_MODEL', 'deepseek/deepseek-chat'),
     baseUrl: get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
   },
 

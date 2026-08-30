@@ -1,9 +1,22 @@
 import { load } from 'cheerio';
 import { fetchJson, fetchText } from './http.js';
+import { applyFilter } from './filter.js';
 
 const SOURCE = 'B站';
 
 export const name = SOURCE;
+
+// 提取「1.2万」/「3456」形式的播放量 → 数字（解析失败返回 null）
+function parsePlay(str) {
+  const s = String(str || '').trim();
+  if (!s || s === '--') return null;
+  let m = s.match(/([\d.]+)\s*(万|亿)?/);
+  if (!m) return null;
+  let n = Number(m[1]);
+  if (m[2] === '万') n *= 10000;
+  if (m[2] === '亿') n *= 100000000;
+  return Math.round(n);
+}
 
 export async function collectHot() {
   // 移动端公开热搜接口（免 wbi 签名）
@@ -34,12 +47,22 @@ export async function collectSearch(keyword) {
   const out = [];
   $('.bili-video-card, .video-item').each((_, el) => {
     const $el = $(el);
-    const $a = $el.find('a').first();
+    const $a = $el.find('.bili-video-card__info--tit a, a').first();
     const title = ($a.attr('title') || $a.text()).trim();
     if (!title) return;
     let url = $a.attr('href') || '';
     if (url.startsWith('//')) url = 'https:' + url;
-    out.push({ title, url, source: SOURCE, snippet: '', ts: Date.now() });
+    // 播放量（.bili-video-card__stats--item 形如「1.2万播放」）
+    const playText = $el.find('.bili-video-card__stats--item').first().text().trim();
+    const play = parsePlay(playText.replace(/播放.*$/, ''));
+    out.push({
+      title,
+      url,
+      source: SOURCE,
+      snippet: '',
+      heat: play ? `${play.toLocaleString()} 播放` : '',
+      ts: Date.now(),
+    });
   });
-  return out.slice(0, 20);
+  return applyFilter(out).slice(0, 20);
 }

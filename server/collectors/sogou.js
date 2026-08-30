@@ -1,11 +1,16 @@
 import { load } from 'cheerio';
 import { fetchText } from './http.js';
+import { applyFilter } from './filter.js';
 
 const SOURCE = '搜狗';
 const MOBILE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1';
 
 export const name = SOURCE;
+
+// tsn=1 为近 24 小时时间过滤：只保留「新发布」内容，剔除百科/下载站/介绍页等老页面。
+// 实测综合排序会被下载站、搜狗百科、介绍页灌满，加 tsn=1 后结果变为正规新闻。
+const TSN = 1; // 1=一天内
 
 // 解析搜狗移动端结果页（桌面端有反爬验证页，移动端可直接取到结果）
 function parseMobile(html) {
@@ -26,12 +31,14 @@ function parseMobile(html) {
       /* ignore */
     }
     if (!title) return;
+    // 同一轮内的标题级去重
     const key = title;
     if (seen.has(key)) return;
     seen.add(key);
     out.push({ title, url, source: SOURCE, snippet: '', ts: Date.now() });
   });
-  return out;
+  // 统一噪音过滤（下载站/百科/介绍页）+ 站点名提取
+  return applyFilter(out);
 }
 
 export async function collectHot() {
@@ -41,7 +48,7 @@ export async function collectHot() {
 
 export async function collectSearch(keyword) {
   const html = await fetchText(
-    `https://m.sogou.com/web/searchList.jsp?keyword=${encodeURIComponent(keyword)}`,
+    `https://m.sogou.com/web/searchList.jsp?keyword=${encodeURIComponent(keyword)}&tsn=${TSN}`,
     { headers: { 'User-Agent': MOBILE_UA } },
   );
   return parseMobile(html);

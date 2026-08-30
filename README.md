@@ -5,8 +5,9 @@
 - 🎯 **关键词监控** — 手动输入关键词，多源并行搜索，AI 识别假冒/无关内容后即时告警。
 - 📡 **热点聚合** — 定时自动收集指定范围（如「AI 编程」）的热点，网页可视化查看。
 - 🔔 **多渠道通知** — 浏览器实时推送（Web Push）+ 邮件（SMTP）。
-- 🌐 **8 信息源并行** — Twitter/X、Bing、Google、DuckDuckGo、HackerNews、搜狗、B站、微博，避免单一源。
-- 🤖 **AI 判定** — OpenRouter 接入，批量判断相关性、识别标题党/营销号/同名无关内容，并生成中文摘要。
+- 🌐 **14 信息源并行** — Twitter/X、Google、Bing、DuckDuckGo、HackerNews、搜狗(近24h新内容)、B站、微博、GitHub Trending、V2EX、360、百度、Reddit、微信(公众号)，多源冗余避免单一源。
+- 👤 **账号解析** — 关键词本身是 GitHub 组织/用户或 B站 UP主 时，直接拉取账号资料（名称/简介/粉丝数/主页）并注入其最新动态。
+- 🤖 **AI 判定** — OpenRouter 接入，批量判断相关性、识别下载站/百科/营销号/标题党/同名无关内容，并生成中文摘要。
 - 🧩 **Agent Skills** — 封装为 skill，可交给其他 AI（如 Claude Code）监控/发现热点。
 
 ## 快速开始
@@ -42,7 +43,7 @@ npm run dev       # 终端 2：后端（--watch）
 |---|---|---|
 | `PORT` | 服务端口 | `3000` |
 | `OPENROUTER_API_KEY` | OpenRouter 密钥（**必填**，否则降级为关键词匹配） | — |
-| `OPENROUTER_MODEL` | 判定模型 | `google/gemini-2.0-flash-001` |
+| `OPENROUTER_MODEL` | 判定模型（勿用 `*-free` 免费版，限流会频繁降级） | `deepseek/deepseek-chat` |
 | `TWITTERAPI_IO_KEY` | [twitterapi.io](https://twitterapi.io/) 密钥（X 源，可选） | — |
 | `SMTP_HOST/PORT/SECURE/USER/PASS/FROM/TO` | 邮件通知（可选，全填才启用） | — |
 | `MONITOR_INTERVAL_MIN` | 关键词监控间隔（分钟） | `5` |
@@ -80,7 +81,7 @@ Agent Skill 定义见 [`skills/trend-monitor/SKILL.md`](skills/trend-monitor/SKI
 
 ```
 server/            后端（Express + SQLite + 调度 + 采集 + AI + 通知）
-  collectors/      8 个信息源采集器
+  collectors/      14 个信息源采集器 + 账号解析
   routes/          REST API
 src/               前端（Vite + React + Tailwind v4）
   components/      雷达 / 关键词 / 热点 / 告警 / 设置
@@ -93,14 +94,25 @@ docs/              需求与设计文档
 
 ## 数据源可用性说明
 
+> 默认直连，单源连不上自动跳过（不影响其他源）。被墙的源（Google/DDG/Reddit/V2EX）在配置代理后自动恢复。
+
 | 源 | 是否需要配置 | 备注 |
 |---|---|---|
 | Twitter/X | `TWITTERAPI_IO_KEY` | 免费额度有限，无 key 自动跳过 |
-| Google / Bing / DuckDuckGo | 国内网络需代理 | 用 `HTTP_PROXY`/`HTTPS_PROXY` |
-| HackerNews / 搜狗 / B站 / 微博 | 无需 | 直接可用（微博关键词搜索需登录，热搜榜可用） |
+| Google / DuckDuckGo / Reddit / V2EX | 直连常不通，需代理 | 失败自动跳过，不影响其他源 |
+| Bing / GitHub / 360 / 百度 | 无需 | 国内可直连 |
+| HackerNews / 搜狗 / B站 / 微博 | 无需 | 搜狗仅抓近 24h 新内容；微博关键词搜索需登录，热搜榜可用 |
+| 微信 | 无需 | 公众号内容（搜狗微信），敏感反爬自动跳过、15 分钟冷却自恢复 |
+
+## 可靠性与降噪策略
+
+- **搜狗 `tsn=1`**：只抓近 24 小时新发布内容，从源头剔除百科/下载站/介绍页等老页面。
+- **统一噪音过滤层**：黑名单（下载/官方版/百科/教程/是什么等）+ 站点名提取 + 标题清洗。
+- **稳定去重**：`sha1(规范化标题 + 来源)`，URL 带随机参数的源也能跨轮去重。
+- **告警节流**：同关键词 + 同内容 24h 内只告警一次，杜绝重复轰炸。
+- **AI 增强判定**：识别下载站/百科/营销号/标题党/同名无关，正规媒体与社区热度（stars/回复/播放）加权。
 
 ## 注意事项
 
 - 采集器带限频与随机抖动，单源失败不影响整体；HTML 结构变动时解析失败仅告警不崩溃。
 - Web Push 需安全上下文（`localhost` 或 HTTPS）。
-- 同一内容按 `sha1(标题+URL)` 去重，不会重复告警。

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { config } from './config.js';
+import { normKey } from './collectors/filter.js';
 
 fs.mkdirSync(config.dataDir, { recursive: true });
 const DB_PATH = path.join(config.dataDir, 'trend.db');
@@ -72,15 +73,22 @@ CREATE TABLE IF NOT EXISTS sources (
 `);
 
 // 数据源默认元数据（name 需与各采集器导出的 name 一致）
+// 注：Google/Bing/DDG/Reddit/V2EX 在国内网络下需直连可达或代理可用，连不上会自动跳过（单源失败不影响其他源）。
 const SOURCE_SEED = [
   ['Twitter', 'Twitter / X', '需 TWITTERAPI_IO_KEY'],
-  ['Google', 'Google', '国内网络需代理'],
-  ['Bing', 'Bing', '国内网络需代理'],
-  ['DuckDuckGo', 'DuckDuckGo', '国内网络需代理'],
+  ['Google', 'Google', '国内直连常不通，失败自动跳过'],
+  ['Bing', 'Bing', '国内可直连，失败自动跳过'],
+  ['DuckDuckGo', 'DuckDuckGo', '国内直连常不通，失败自动跳过'],
   ['HackerNews', 'Hacker News', '免配置'],
-  ['搜狗', '搜狗', '免配置'],
-  ['B站', 'B站', '免配置'],
+  ['搜狗', '搜狗', '近24h新内容(tsn=1)，免配置'],
+  ['B站', 'B站', '热搜榜+搜索，免配置'],
   ['微博', '微博', '热搜榜可用，关键词搜索需登录'],
+  ['GitHub', 'GitHub', 'Trending+仓库搜索，免配置'],
+  ['V2EX', 'V2EX', '程序猿社区(sov2ex)，免配置'],
+  ['360', '360搜索', '国内可直连，免配置'],
+  ['百度', '百度', '热搜榜+搜索，偶发验证码自动跳过'],
+  ['Reddit', 'Reddit', '需可直连/代理，失败自动跳过'],
+  ['微信', '微信', '公众号内容(搜狗微信)，免配置'],
 ];
 {
   const ins = db.prepare('INSERT OR IGNORE INTO sources (name, enabled, label, note) VALUES (?, 1, ?, ?)');
@@ -96,6 +104,20 @@ const SOURCE_SEED = [
   if (!cols.includes('genuine')) db.exec('ALTER TABLE hotspots ADD COLUMN genuine INTEGER DEFAULT 1');
   // 旧数据 score 为 0~1，统一迁移到 0~100
   db.exec('UPDATE hotspots SET score = ROUND(score * 100) WHERE score > 0 AND score <= 1');
+}
+
+// 迁移：items 表补充 norm_hash（规范化标题+来源 去重键）。
+// 搜狗/360/百度等源 URL 每次抓取带随机参数，url_hash 无法跨轮去重；
+// norm_hash 基于清洗后的标题+来源，稳定可去重。
+{
+  const cols = db.prepare('PRAGMA table_info(items)').all().map((c) => c.name);
+  if (!cols.includes('norm_hash')) db.exec('ALTER TABLE items ADD COLUMN norm_hash TEXT');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_items_norm_hash ON items(norm_hash)');
+}
+
+// 规范化标题去重键：sha1(清洗后标题 + 来源)
+export function hashNorm(title, source) {
+  return crypto.createHash('sha1').update(normKey(title, source)).digest('hex');
 }
 
 // 旧数据（无 model 记录）按 score 回填重要性分级（幂等，新 AI 结果已带 level/model 不受影响）
@@ -133,7 +155,7 @@ export function touchHotspot(title, source, range) {
   return null;
 }
 
-// 去重键：标题 + URL 规范化后 sha1
+// 去重键：标题 + URL 规范化后 sha1（对 URL 稳定的源有效）
 export function hashItem(title, url) {
   const norm = `${(title || '').trim().toLowerCase()}||${(url || '').trim().toLowerCase()}`;
   return crypto.createHash('sha1').update(norm).digest('hex');
@@ -141,14 +163,19 @@ export function hashItem(title, url) {
 
 // 返回 true 表示新条目（首次见到），false 表示已存在（去重命中）
 export function dedupeItem({ title, url, source, snippet }) {
+  // 优先用「规范化标题 + 来源」去重：搜狗/360/百度等 URL 每次带随机参数，
+  // title 也带「 - 站点」后缀，这两者需清洗后才能作为稳定去重键。
   const h = hashItem(title, url);
-  const existing = db.prepare('SELECT id FROM items WHERE url_hash = ?').get(h);
+  const nh = hashNorm(title, source);
+  const existing = db
+    .prepare('SELECT id FROM items WHERE url_hash = ? OR norm_hash = ?')
+    .get(h, nh);
   if (existing) {
     db.prepare("UPDATE items SET last_seen = datetime('now','localtime') WHERE id = ?").run(existing.id);
     return false;
   }
-  db.prepare('INSERT OR IGNORE INTO items (url_hash, title, url, source, snippet) VALUES (?,?,?,?,?)')
-    .run(h, title ?? null, url ?? null, source ?? null, snippet ?? null);
+  db.prepare('INSERT OR IGNORE INTO items (url_hash, norm_hash, title, url, source, snippet) VALUES (?,?,?,?,?,?)')
+    .run(h, nh, title ?? null, url ?? null, source ?? null, snippet ?? null);
   return true;
 }
 

@@ -6,9 +6,19 @@ import * as hackernews from './hackernews.js';
 import * as sogou from './sogou.js';
 import * as bilibili from './bilibili.js';
 import * as weibo from './weibo.js';
+import * as github from './github.js';
+import * as v2ex from './v2ex.js';
+import * as so360 from './so360.js';
+import * as baidu from './baidu.js';
+import * as reddit from './reddit.js';
+import * as weixin from './weixin.js';
+import { resolveAccount } from './accounts.js';
 import { db } from '../db.js';
 
-const SOURCES = [twitter, google, bing, duckduckgo, hackernews, sogou, bilibili, weibo];
+const SOURCES = [
+  twitter, google, bing, duckduckgo, hackernews,
+  sogou, bilibili, weibo, github, v2ex, so360, baidu, reddit, weixin,
+];
 
 export { SOURCES };
 
@@ -41,6 +51,16 @@ export async function searchAll(keyword) {
   const srcs = enabledSources();
   const results = await Promise.allSettled(srcs.map((s) => s.collectSearch(keyword)));
   return settle(results, srcs);
+}
+
+// 搜索 + 账号解析：若关键词本身是「博主/官方/账号」（GitHub 组织/用户、B站 UP主），
+// 并入其最新动态（posts），同时返回账号资料（profile），由上层决定如何展示。
+export async function searchWithAccounts(keyword) {
+  const [search, accounts] = await Promise.all([searchAll(keyword), resolveAccount(keyword)]);
+  const posts = accounts.flatMap((a) =>
+    (a.posts || []).map((p) => ({ ...p, source: p.source || a.platform })),
+  );
+  return { items: [...search.items, ...posts], accounts, errors: search.errors };
 }
 
 // 拉取所有源的原生热点榜单
